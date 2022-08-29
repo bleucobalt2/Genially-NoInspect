@@ -64,6 +64,7 @@
         devtools.orientation = undefined;
       }
     };
+    // On lance la detection de l'ouverture de devtools avec les paramètres par défaut puis toutes les 0,5s
     detecte({evenementsEmis: false});
     setInterval(detecte, 500);
     //console.log('Debug, DevTools est ouvert ? :', devtools.isOpen);
