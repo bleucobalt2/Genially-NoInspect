@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>NoInspect V1.3</title>
+</head>
+<body>
+
+<div id="noMenu2" style="border: hotpink solid 1px;background: linear-gradient(to bottom right, pink, red); border-radius: 10px; display:flex; flex-direction: column;  justify-content: center; width:100%; height:100%;">NoInspect v1.3 : Interdit l'ouverture de l'outil de dévevoloppement par click droit / F12 / Ctrl + Maj +I en mode "Présentation". Si ouvert avec le menu du navigateur : Réinitialise le Genially et efface sessionStorage toutes les 0,5s tant que ouvert.</div>
+
+<script>
+  if (document.querySelector('.container-wrapper-genially')){
+    document.getElementById('noMenu2').closest('.genially-animated-wrapper').style.visibility='hidden';
+    /**
+     * Objet devtools, contient l'orientation et le booléen est ouvert
+     * @type {{orientation: undefined, isOpen: boolean}}
+     */
+    let devtools = {
+      isOpen: false,
+      orientation: undefined,
+    };
+    /**
+     * Seuil de détection (px) entre  la taille des dimensions du document html et la fenêtre
+     * Si  différence > seuil : on considère que devtools est ouvert
+     * @type {number}
+     */
+    const seuil = 160;
+    /**
+     * Fonction de distribution de l'évenement personnalisé "devtoolschange" contenant l'état de devtools
+     * @param isOpen : boolean
+     * @param orientation
+     */
+    const emetEvenement = (isOpen, orientation) => {
+      globalThis.dispatchEvent(new globalThis.CustomEvent('devtoolschange', {
+        detail: {
+          isOpen,
+          orientation,
+        },
+      }));
+    };
+    /**
+     * Fonction de détection de l'état de devtools. Emet l'évenement "devtoolschange" avec les paramètres après avoir détecté
+     * @param evenementsEmis
+     */
+    const detecte = ({evenementsEmis = true} = {}) => {
+      const seuilLargeur = globalThis.outerWidth - globalThis.innerWidth > seuil;
+      const seuilHauteur = globalThis.outerHeight - globalThis.innerHeight > seuil;
+      const orientation = seuilLargeur ? 'vertical' : 'horizontal';
+
+      if (!(seuilHauteur && seuilLargeur)
+        && ((globalThis.Firebug && globalThis.Firebug.chrome && globalThis.Firebug.chrome.isInitialized) || seuilLargeur || seuilHauteur)
+      ) {
+        if ((!devtools.isOpen || devtools.orientation !== orientation) && evenementsEmis) {
+          emetEvenement(true, orientation)
+        }
+        devtools.isOpen = true;
+        devtools.orientation = orientation;
+      } else {
+        if (devtools.isOpen && evenementsEmis) {
+          emetEvenement(false, undefined)
+        }
+
+        devtools.isOpen = false;
+        devtools.orientation = undefined;
+      }
+    };
+    detecte({evenementsEmis: false});
+    setInterval(detecte, 500);
+    //console.log('Debug, DevTools est ouvert ? :', devtools.isOpen);
+    /**
+     * Fonction qui vide sessionStorage
+     */
+    const clearF = () => {
+      sessionStorage.clear()
+    };
+    /**
+     * Initialisation de la variable clearS servant à contenir setInterval et clearF
+     */
+    let clearS;
+    /**
+     * Condition initiale de de gestion en fonction de l'état de devtools
+     * Si ouvert : vider sessionStorage toutes les 0,5s avec setInterval
+     * Si fermé : stopper setInterval
+     */
+    if(devtools.isOpen){
+      clearF();
+      clearS = setInterval(clearF, 500);
+      alert('Pour un fonctionnement normal, fermez l\'outil de dévelopement!')
+    }
+    else{
+      clearInterval(clearS);
+      clearS = null
+    }
+    /**
+     * Ajouter l'évenement devtoolschange à la fenêtre et gérer le changement d'état
+     * si devtools passe à ouvert : vider sessionStorage et relancer le Genially
+     * si devtools passe à fermé : stopper setInterval pour fixer sessionStorage
+     */
+    window.addEventListener('devtoolschange', event => {
+      //console.log('Debug : DevTools est ouvert ? : ', event.detail.isOpen);
+      //console.log('Debug : DevTools orientation : ', event.detail.orientation);
+      if(event.detail.isOpen){
+        clearF();
+        alert('Vous venez d\'ouvrir l\'outil de dévelopement. C\'est interdit : Réinitialisation');
+        location.reload()
+      }
+      else{
+        clearInterval(clearS);
+        clearS = null
+      }
+    });
+    //console.log('Test : Here we are!!');
+    /**
+     * Fonction d'interdiction du click droit, F12, CTRL + MAJ +I avec écoute des événements "contextmenu" et "keydown"
+     */
+    const secure = () => {
+      if(document.addEventListener) {
+        document.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          alert('Vous essayez d\'ouvrir le menu contextuel : C\'est interdit!')
+        }, false);
+        document.addEventListener('keydown', ev => {
+          const nomTouche = ev.key;
+          if(nomTouche === 'F12'){
+            ev.preventDefault();
+            alert('F12 pressée: C\'est interdit!')
+          }
+          if(ev.ctrlKey && ev.shiftKey && nomTouche === 'I'){
+            ev.preventDefault();
+            alert('Combinaison CTRL + MAJ + I : C\'est interdit!')
+          }
+        }, false)
+      }
+    }
+    secure()
+  }
+</script>
+
+</body>
+</html>
